@@ -1,0 +1,164 @@
+\documentclass[12pt]{article}
+\usepackage[british, main=italian]{babel}
+\usepackage[applemac]{inputenc}
+\usepackage{titling}
+\usepackage{amsmath}
+\usepackage{geometry}
+
+
+\title{Analisi di sorgenti X con calcolatore}
+\author{Gabriele Sano}
+\date{\today}
+
+\begin{document}
+
+\begin{titlingpage}
+\thispagestyle{empty}
+\newgeometry{top=2cm}
+
+\maketitle
+\tableofcontents
+
+
+\end{titlingpage}
+\restoregeometry
+
+%produrre immagini per header file fit, curve di luce, spettri, test chi quadro
+
+\section{Introduzione}
+
+Il tirocinio è stato effettuato presso l'Osservatorio Astronomico di Palermo G.S. Vaiana. Lo scopo di questo è stato quello di prendere confidenza con i mezzi di analisi utilizzati abitualmente presso l'istituto di ricerca. In particolare sono state svolte delle operazioni di analisi dati su delle osservazioni effettuate dal telescopio orbitante \mbox{XMM-Newton}. \par Le immagini catturate dai CCD del telescopio riguardano l'ammasso stellare delle Pleiadi, e sono state portate dallo stato grezzo del conteggio di fotoni su tutto il sensore fino all'isolamento di alcune sorgenti di radiazione X e all'estrazione delle loro curve di luce e dei loro spettri, attraverso delle operazioni di pulizia, filtraggio ed isolamento.  In particolare questa procedura ha coinvolto alcuni pacchetti di script e librerie messi a disposizione della comunità scientifica da NASA ed ESA (il pacchetto HEASoft e il pacchetto SAS) e da parte dell'Osservatorio Astronomico di Palermo (il software di rilevamento delle sorgenti PWXDETECT), oltre che l'uso dei software di visualizzazione dei dati DS9 per le immagini ricavate dalle tabelle FITS e TOPCAT per generare i grafici delle curve di luce. 
+
+\subsection{XMM-Newton}
+
+\mbox{XMM-Newton} è un telescopio spaziale in grado di catturare immagini attraverso il conteggio di fotoni ad alta energia, tra i 0,15 keV e i 15 keV, corrispondenti ai cosiddetti raggi X. Orbita intorno alla Terra con un periodo di 48 ore dal Dicembre del 1999, quando è stato lanciato in orbita dall'ESA. Questo è fornito di tre rilevatori CCD a conteggio di fotoni detti MOS1, MOS2 e PN. 
+Grazie alle osservazioni prodotte da questo osservatorio spaziale sono stati scritti migliaia di articoli.
+
+\subsection{Le Pleiadi}
+
+Le Pleiadi sono un ammasso aperto relativamente vicino (440 anni luce). Sono un ammasso giovane che contiene alcune delle stelle più luminose visibili ad occhio nudo, anche per questa ragione sono note fin dall'antichità e sono uno degli ammassi stellari più studiati. Si prestano perfettamente per lo scopo del tirocinio grazie alla loro luminosità anche nella banda X dello spetto elettromagnetico.
+
+\section{Analisi Dati}
+
+\subsection{Configurazione dell'ambiente di lavoro}
+
+Il primo passo da affrontare prima di poter effettuare qualsiasi tipo di analisi è stata la configurazione della mia personale postazione di lavoro. Non avendo lavorato sui calcolatori dell'osservatorio, ma sul mio PC, è stato quindi necessario scaricare ed installare attraverso il terminale del sistema operativo i pacchetti di analisi dati HEASoft e SAS (Standard Analysis System). 
+\par Successivamente mi è stato dato accesso ai file ODF (Observation Data Files) di cui mi sarei dovuto occupare: all'interno di questi file sono contenute tutte le informazioni caratterizzanti, dal nome del ricercatore che le ha richieste al numero di conteggi dei fotoni. I file ODF vengono distribuiti con estensione FIT (o FITS), che sta per Flexible Image Transport (System). Questo è il formato più diffuso per i file di eventi in astronomia, prestandosi ad una vasta possibilità d'impieghi grazie alla sua flessibilità come contenitore di dati. Nel caso in oggetto, questi file possono essere considerati come delle tabelle da cui è possibile estrarre ogni dettaglio sulla ricezione di ogni singolo fotone rilevato dal CCD.
+\par Per trattare questi file è stato necessario creare un nuovo file di calibrazione che fosse aggiornato: da questo dipendono tutte le informazioni sul sensore e sui suoi possibili errori di rilevamento, quindi è necessario per effettuare una corretta pulizia dell'immagine. 
+\par Quindi sono state dichiarati i parametri necessari al corretto funzionamento di SAS: attraverso il comando \verb|setenv| viene indirizzato verso le corrette directory dei file di calibrazione e file ODF il programma.
+\par Affinché potesse essere possibile un semplice avvio dei programmi di analisi, si è quindi proceduto a dichiararne correttamente gli indirizzi nelle cartelle di sistema così da renderli inizializzabili attraverso semplici comandi come \verb|heainit| all'avvio del terminale.
+\par Ora il computer è pronto a preparare i dati per le operazioni successive, quindi è necessario dare da terminale i comandi \verb|emchain| per i dati ricavati dai sensori MOS e \verb|epchain| per il sensore PN. Questi comandi producono degli output calibrati correttamente dei file di eventi su cui vengono applicati; questi output vengono quindi rinominati in modo tale da poter essere facilmente richiamati durante il flusso di lavoro: \verb|m1events.fits|, 
+\verb|m2events.fits|, \verb|pnevents.fits|.
+
+%inserisci immagine dell'header di un file FIT
+
+\subsection{Filtraggio dei file degli eventi}
+
+Perché i dati raccolti dal telescopio possano essere utili all'analisi è necessario che questi vengano filtrati. Questo vuol dire che gli eventi, cioè il conteggio dei fotoni, devono essere selezionati in modo tale che soltanto quelli accertati rimangano. Queste operazioni coinvolgono l'eliminazione dei BADPIXEL, delle BADCOLUMN, dei fotoni con energie fuori da un certo intervallo e degli intervalli di tempo (GTI o Good Time Intervals) con un rumore di fondo tale da disturbare eccessivamente l'osservazione.
+
+\subsubsection{Filtro per BADPIXEL e BADCOLUMN}
+
+Spesso succede che col tempo alcuni dei pixel possano essere danneggiati, in alcuni casi intere colonne, e che quindi questi rimangano sempre accesi (in questo caso si dirà Hot Pixels). Questo produce dei punti molto luminosi che a prima vista potrebbero sembrare delle sorgenti di radiazione, ma che in realtà sono semplicemente difetti del sensore CCD. In altri casi si può parlare di Cold Pixels, quando questi sono incapaci di rispondere alle sollecitazioni.
+\par Attraverso gli script di SAS \verb|evselect| sono stati quindi ricavati dei file\\  \texttt {m1\_filtered.fits, m2\_filtered.fits, pn\_filtered.fits } da cui sono stati eliminati eventi attribuibili a difetti dei sensori o in generale ad eventi non interessanti per la ricerca come sorgenti fuori dal FOV (Field Of View) e raggi cosmici.
+
+
+\subsubsection{Intervalli di tempo utili}
+
+Per determinare questo filtro è necessario individuare innanzitutto una curva di luce dipendente da eventi attribuibili a flare solari. Questi hanno tipicamente un'energia superiore ai 10 keV, andremo quindi a filtrare i file per ottenere solo questi eventi e quindi estrarre una curva di luce sempre attraverso il comando \verb|evselect|.
+\par Questa curva di luce è detta BKGLC: essendo una tabella con in ascissa il tempo ed in ordinata il conteggio degli eventi è possibile visualizzarla attraverso il software TOPCAT. Dopo la visualizzazione si è proceduto ad individuare manualmente gli intervalli di tempo in cui il rumore di fondo non influisce significativamente sull'osservazione, quindi tramite il comando \verb|tabgtigen| il programma ha generato delle curve di luce che considerassero solamente i GTI. Siamo ora in grado di utilizzare ancora il comando \verb|evselect| per passare dai file filtrati precedentemente fino ad arrivare a dei nuovi file filtrati per gli intervalli temporali utilizzabili.
+\par Abbiamo ora dei nuovi \verb|m1events_gti.fits|, \verb|m2events_gti.fits|,\\ \verb|pnevents_gti.fits| pronti a passare al gradino successivo dell'elaborazione dei dati.
+
+\subsubsection{Filtro banda energetica}
+
+L'ultimo filtro che si va ad applicare consiste in una banda di energia compresa tra 0,3 keV e 7,9 keV. Questo perché al di sotto di una certa energia c'è una buona probabilità di artefatti e rumore strumentale che porta a conteggi errati, mentre al di sopra si ha quasi la certezza che si tratti di rumore di fondo (in particolare in prossimità degli 8 keV).
+\par Sempre con il comando \verb|evselect| è possibile selezionare un range di energia all'interno del quale lavorare, ottenendo ora dei file filtrati sia in energia che nel tempo: \verb|m1_enandtime.fits|, \verb|m2_enandtime.fits|, \verb|pn_enandtime.fits|.
+
+\section{Individuazione delle sorgenti}
+
+Per individuare le sorgenti si è proceduto, a causa di problemi tecnici, in due modi differenti: manualmente su una singola sorgente e tramite un'applicazione esterna per setacciare tutta l'area. L'Osservatorio Astronomico di Palermo dispone del software PWXDETECT per segnalare le varie sorgenti presenti in un'osservazione, ma questo software non è compatibile con il sistema operativo MacOS a causa dell'impossibilità di eseguire applicazioni a 32 bit all'interno di questo specifico sistema operativo a 64 bit. Questa difficoltà è stata successivamente superata grazie all'installazione di una macchina virtuale su cui è stata montata una distribuzione Linux a 32 bit.
+ 
+
+\subsection{Selezione manuale}
+Durante la prima parte, in assenza del software di detection, è stata selezionata una sorgente che è apparsa particolarmente brillante nel file filtrato. Questa è stata centrata manualmente nel programma di visualizzazione DS9, individuandone un congruo raggio da esportare in un file region generato dallo stesso programma. L'operazione è stata ripetuta per ogni sensore. Nella prossima sezione vedremo nel dettaglio l'analisi. 
+
+\subsection{Utilizzo di PWXDETECT}
+Per utilizzare questo codice è necessario preparare tutti i dati in precedenza, dato che questo non permette cambiamenti dell'ultimo minuto ma è piuttosto stretto in quelli che sono gli input accettati.
+\par Il procedimento consiste nella creazione di un file \verb|image.fits| per ogni CCD, che otterremo dicendo al comando \verb|evselect| di raggruppare i pixel in gruppi da 40. Quindi andremo a generare un file attitude attraverso il comando \verb|atthkset| e successivamente una mappa di esposizione per ogni CCD con il comando \verb|eexpmap| che si serve dei già citati file \verb|image.fits|.
+\par Andremo quindi a somministrare al codice i tre file con gli eventi filtrati in energia e tempo e le tre mappe d'esposizione, che il programma penserà ad unire appropriatamente. Nella cartella sarà presente anche un file \verb|.par| che andrà a fissare tutti i parametri richiesti dal programma. Tra questi parametri i più importanti sono la soglia di significatività e l'ampiezza della wavelet in arcosecondi. Il primo ci dà una misura di quante sorgenti spurie è razionale aspettarsi in base al numero immesso, mentre la seconda influenza la detection di sorgenti puntiformi.
+\par L'output del programma include un file degli eventi complessivo, una mappa dell'esposizione complessiva e dei file di testo per indicare le sorgenti. Tra questi file è incluso un file region sovrapponibile all'immagine da visualizzare in DS9.
+
+\section{Estrazione delle curve di luce}
+
+Con PWXDETECT sono state effettuate dodici tipi di detection facendo variare le soglie e la wavelet scale. \`E stata infine scelta una detection con soglia a 6$\sigma$, in modo da ottenere il minor numero di sorgenti spurie considerando gli oltre 300mila eventi presi in considerazione raggruppando tutti i dati raccolti dai tre sensori.
+
+\subsection{Selezione delle sorgenti}
+
+Tra le 144 sorgenti trovate dalla detection presa in considerazione ne sono state prese in considerazione quattro, a cui se ne deve aggiunge una individuata manualmente. Queste sono alcune di quelle con il maggior numero di conteggi, ma anche tra le più interessanti da un punto di vista scientifico. Infatti, essendo queste delle osservazioni già catalogate, sono state indicate tra queste sorgenti alcune con un flare molto evidente nella curva di luce.
+\par Analizzeremo quindi più in dettaglio due sorgenti quiescenti, dette così per la regolarità della loro curva di luce, e tre sorgenti con flare.
+
+\subsection{Metodo di analisi}
+
+I processi utilizzati per arrivare a dei dati facilmente consultabili sono comuni ad ogni sorgente che si vuole analizzare.
+\par La prima cosa da fare è individuare il centro della sorgente e un raggio sul quale questa si sviluppa, questo attraverso un file region che ci indica appunto un cerchio centrato sulla sorgente e con raggio impostato tale da coprirla completamente. Questa operazione viene replicata per il background della sorgente, per cui si seleziona una zona nei dintorni dell'osservazione senza sorgenti in modo tale da poter filtrare successivamente gli eventi della sorgente.
+\par Ricavare una curva di luce prevede operazioni molto simili a quelle effettuate precedentemente e quindi ricorreremo all'uso del comando \verb|evselect| per passare dal file complessivo degli eventi a quello degli eventi riguardanti unicamente la sorgente in esame, quindi da questo sempre con lo stesso comando siamo in grado di ricavare le curve di luce per la sorgente e il suo background. Da tenere particolarmente in considerazione è il time bin utilizzato, cioè il raggruppamento temporale degli eventi entro un singolo contenitore.
+\par Ora quello che vogliamo è una curva di luce che sia corretta considerando quella del background, questo è ottenibile grazie al comando \verb|epiclccorr| che restituisce una curva di luce combinata. Tutte queste operazioni sono da considerare per ogni sensore MOS e PN.
+
+
+\subsubsection{Sorgenti quiescenti}
+In questa sezione prenderemo in considerazione due sorgenti con una curva di luce senza picchi particolari e che presenta una certa costanza. La prima di queste è stata scelta manualmente, mentre la seconda è stata individuata per mezzo del software PWXDETECT.
+Per queste curve di luce è stato utilizzato un time bin doppio nel MOS rispetto a quello utilizzato per il PN, essendo quest'ultimo molto più sensibile e raccogliendo quindi un maggior numero di foto.
+%inserisci immagine curve di luce per la sorgente 52 e la sorgente 16052016
+
+\subsubsection{Sorgenti con flare}
+
+Le sorgenti con flare analizzate sono tre, tutte individuate con il codice PWXDETECT. Per queste sono state svolte esattamente le stesse operazioni e anche questa volta utilizzando dei time bin doppi sui dati MOS rispetto al PN.
+%inserisci immagine curve di luce per i flare 57-63-95
+
+\section{Analisi spettrale}
+
+Per effettuare l'analisi spettrale è necessario eseguire alcuni passaggi sul file degli eventi delle sorgenti, per cui innanzitutto questo viene preparato come uno spectrumset attraverso i dettagli del comando \texttt{evselect}. Successivamente alla sorgente e il suo background vengono applicati i comandi \texttt{backscale} per calcolare l'area della zona di estrazione dello spettro, quindi viene generata una matrice di risposta con \texttt{rmfgen} e un file ausiliario con \texttt{arfgen}.
+Dopo aver generato questi file per ogni sorgente, è necessario assegnarli alle corrette denominazioni attraverso l'ambiente \texttt{grppha} all'interno del software di analisi.
+Quindi il pacchetto XSPEC sarà utilizzato per il resto dell'analisi, cioè per quanto riguarda la scelta di un modello e come questo si adatta allo spettro in esame, fino al generare i grafici illustrativi.
+
+
+\subsection{Sorgente quiescente}
+
+Dopo averne calcolato la curva di luce nella sezione precedente, è stata presa una delle due sorgenti per l'analisi del suo spettro. Dopo aver eseguito tutti i passi precedenti e aver avviato XSPEC, sono state fatte diverse prove scegliendo un modello con assorbimento e due o tre componenti a diversa temperatura. In questo tipo di modello l'assorbimento è indicato dal termine \texttt{wabs} e le componenti della temperatura da \texttt{apec}.
+
+\subsubsection{Adattamento dei modelli ed F-test}
+
+Per questa sorgente sono stati provati quattro modelli diversi, che si differenziano tra di loro per il numero di componenti di temperatura e dall'abbondanza metallica che può essere fissata su quella solare o lasciata come parametro libero.
+
+\begin{table}[!h]\begin{center}\begin{tabular}{|c|c|c|c|}\hline\textbf{Modello}      & \textbf{$\chi^{2}$} & \textbf{dof} & \textbf{$\chi^{2}_R$} \\ \hline2T, Abbondanza fissa  &    761,58       &     407         &       1,87    \\ \hline2T, Abbondanza libera &      465,73     &      406        &       1,15    \\ \hline3T, Abbondanza fissa  &      505,95     &      405        &       1,25    \\ \hline3T, Abbondanza libera &     412,18      &      404        &      1,02     \\ \hline\end{tabular}\end{center}\end{table}
+
+\par Da questo possiamo vede come, inserendo un'altra temperatura, il  modello riesce ad adattarsi meglio allo spettro della sorgente. Questo è il risultato diretto di un aumento del numero di gradi di libertà, ma è il caso di chiedersi se questo sia corretto così: se la fisica è d'accordo con i dati numerici.
+\par Per rendersi conto del buon accordo tra un cambiamento nel modello e un reale miglioramento del fit è necessario effettuare il cosiddetto F-test. Questo consiste nel calcolare la funzione F, che mette in relazione il test del $\chi^2$ e il numero di gradi di libertà.
+\par In questo caso l'F-test restituisce delle probabilità molto basse, nei dintorni di $10^{-11}$ per il passaggio da 2T con abbondanza libera a 3T con abbondanza libera, quindi è ragionevole l'aggiunta di nuovi parametri e quest'ultimo modello è quello che si avvicina ragionevolmente ai dati.
+
+\subsection{Sorgente con flare}
+
+Per una delle sorgenti in cui si può notare un flare nella curva di luce sono state inizialmente eseguite le stesse operazioni, ma in questo caso le complicazioni aumentano. \`E stato in due parti lo spettro della sorgente: la prima parte quiescente e la seconda parte che racchiude soltanto il flare. Questo è stato fatto in modo da poter studiare come varia lo spettro di una stessa stella nel momento in cui avviene un flare.
+\par Quindi sono continuate le operazioni sul flare per migliorare la precisione dell'analisi, passando ad un intervallo temporale che va a prendere in considerazione soltanto l'impulso con un time bin molto più basso per tenere conto della più repentina variazione dell'attività stellare.
+\par Nel passaggio dalla fase quiescente a quella di flare si possono notare dei cambiamenti soprattutto nelle temperature, che si alzano considerevolmente rispetto alla norma.
+
+
+\subsubsection{Adattamento dei modelli ed F-test}
+
+prova prova prova
+
+\newpage
+
+\section{Conclusioni}
+
+prova prova prova
+
+\newpage
+
+\section{Bibliografia}
+
+Inserisci i nomi dei vari file pdf da cui hai preso le informazioni
+
+
+
+
+\end{document}
